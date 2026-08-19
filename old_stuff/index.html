@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dallas Walker // CS + STATS PORTFOLIO</title>
+    
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- External JS -->
+    <script src="javascript.js" defer></script>
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="top-nav">
+        <div class="nav-container">
+            <div class="logo-area">
+                <span class="material-symbols-outlined primary-text">terminal</span>
+                <span class="logo-text">PORTFOLIO_v1.0</span>
+            </div>
+            
+            <nav class="main-menu">
+                <a href="#hero" class="active">01_ROOT</a>
+                <a href="#projects">PROJECTS</a>
+                <a href="#ai-assistant">AI_CHATBOT</a>
+            </nav>
+
+            <button class="btn-primary">FETCH_RESUME.PDF</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="hero" class="hero-section">
+            <div class="hero-image-container glass-panel">
+                <img src="images/meImage.png" alt="Dallas Walker AI Generated Professional Portrait">
+                <div class="hero-status">
+                    <p class="status-indicator">SYSTEM_STATUS: ONLINE</p>
+                    <p class="core-id">Walker, Dallas</p>
+                </div>
+            </div>
+
+            <div class="hero-content">
+                <h1 class="display-title">Dallas Walker</h1>
+                <h2 class="mono-subtitle">CS & STATISTICS @ BYU Idaho</h2>
+                <p class="hero-description">
+                    Problem-solver with a multidisciplinary
+background in Computer Science and advanced Statistics, dedicated to leveraging diverse mathematical and programmatic tools for AI development. Having worked in multicultural environments like Hong Kong, I bring a resilient, service-first mindset to solving the world’s most difficult computational problems.
+                </p>
+
+                <div class="skills-grid">
+                    <div class="skill-box">
+                        <span class="skill-label">DATA_STRUCTURES</span>
+                        <span class="skill-value">C++ / RUST</span>
+                    </div>
+                    <div class="skill-box">
+                        <span class="skill-label">STATISTICS</span>
+                        <span class="skill-value">PYTORCH / R</span>
+                    </div>
+                    <div class="skill-box">
+                        <span class="skill-label">ENGINE_DEV</span>
+                        <span class="skill-value">VULKAN / DX12</span>
+                    </div>
+                    <div class="skill-box">
+                        <span class="skill-label">LATENCY</span>
+                        <span class="skill-value">&lt; 2ms TARGET</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Grid Section -->
+        <section id="projects" class="projects-section">
+            <div class="section-header">
+                <h3>DEPLOYED_OPERATIONS</h3>
+                <span class="count-badge">COUNT: 003</span>
+            </div>
+
+            <div class="projects-grid">
+                <!-- Project 1 -->
+                
+        </section>
+
+        <!-- AI Assistant Section -->
+        <section id="ai-assistant" class="ai-section glass-panel">
+            <div class="bg-icon">
+                <span class="material-symbols-outlined">memory</span>
+            </div>
+            
+            <div class="ai-layout">
+                <div class="ai-sidebar">
+                    <div class="ai-title">
+                        <div class="pulse-dot"></div>
+                        <h3>AI Experience Assistant</h3>
+                    </div>
+                    <p>Query the neural archive. Ask about specific technical stack capabilities, academic milestones, or architectural philosophies.</p>
+                    <div class="suggested-queries">
+                        <p class="query-label">SUGGESTED_QUERIES:</p>
+                        <button class="query-btn">"Tell me about your C++ optimizations."</button>
+                        <button class="query-btn">"What is your approach to procedural design?"</button>
+                    </div>
+                </div>
+
+                <div class="ai-terminal">
+                    <div id="chat-output" class="chat-window">
+                        <div class="sys-init">INITIALIZING SYSTEM_INTELLIGENCE... [OK]</div>
+                        <div class="chat-message">
+                            <span class="sys-tag">[SYS]:</span>
+                            <span>Awaiting query input from local terminal. System is ready.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-area">
+                        <span class="material-symbols-outlined primary-text">chevron_right</span>
+                        <input type="text" id="ai-input" placeholder="TYPE_MESSAGE_HERE...">
+                        <button id="execute-btn" class="execute-btn">EXECUTE</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-branding">
+                <span class="logo-text">PORTFOLIO_v1.0</span>
+                <span class="latency-stat">LATENCY: 12ms // STABLE</span>
+            </div>
+            <p class="copyright">© 2024 ANALYTICAL_PORTFOLIO // BUILT WITH PRECISION</p>
+            <div class="footer-links">
+                <a href="#">GitHub</a>
+                <a href="#">LinkedIn</a>
+                <a href="#">Source Code</a>
+            </div>
+        </div>
+    </footer>
+
+<!-- Put this right before </body> in your index.html -->
+<div id="project-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content glass-panel">
+        <button id="close-modal" class="execute-btn">CLOSE</button>
+        <h3 id="modal-title"></h3>
+        <p id="modal-body"></p>
+        <div id="modal-action-area"></div>
+    </div>
+</div>
+
+</body>
+</html>
