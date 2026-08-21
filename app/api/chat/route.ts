@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { buildHostedSystemPrompt } from "@/lib/aiContext";
+import { buildHostedSystemPrompt, buildLocalHandoffMessage } from "@/lib/aiContext";
 import { getQuota, consumeQuota, QUOTA_WINDOW_SECONDS } from "@/lib/quota";
 import { rateLimit } from "@/lib/rateLimit";
+import { generateGeminiReply, getGeminiApiKey } from "@/lib/geminiChat";
 import { site } from "@/config/site";
 
 /**
@@ -11,24 +11,23 @@ import { site } from "@/config/site";
  * Contract (per §9): `{ message, history? }` ->
  *   `{ reply, remainingFreeMessages, mode: "hosted" | "local-handoff", error? }`.
  *
- * - Calls Claude Haiku 4.5 server-side ONLY (the API key never reaches the
- *   client). System prompt is built from the real `data/*.ts` files via
+ * - Calls Gemini 3.5 Flash server-side ONLY (API key never sent to the client).
+ *   System prompt is built from the real `data/*.ts` files via
  *   `buildHostedSystemPrompt()`.
- * - Enforces the 5-free-question quota server-side (FR-6) via a session
- *   cookie + KV/in-memory store — NOT localStorage.
- * - Once the quota is spent, returns `mode: "local-handoff"` WITHOUT calling
- *   Claude; the client then loads the in-browser fallback model (FR-7).
+ * - Enforces a 3-free-question quota server-side (FR-6) via session cookie +
+ *   Upstash/Vercel KV — NOT localStorage.
+ * - Once quota is spent, returns `mode: "local-handoff"` with a handoff message
+ *   and does NOT call Gemini again for that session.
  * - Fails gracefully on missing key / API error / timeout (§6): never a hard
  *   crash, and a failed call does NOT consume the visitor's quota.
  */
 
-const MODEL_ID = "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 1024;
 const MESSAGE_MAX_LEN = 2000;
 const HISTORY_MAX_MESSAGES = 8;
 const HISTORY_ITEM_MAX_LEN = 4000;
 const REQUEST_TIMEOUT_MS = 30_000;
-const IP_RATE_LIMIT = { limit: 30, windowMs: 10 * 60 * 1000 }; // anti-hammer guard
+const IP_RATE_LIMIT = { limit: 30, windowMs: 10 * 60 * 1000 };
 
 const SESSION_COOKIE = "dw_chat_session";
 
@@ -51,17 +50,13 @@ function sanitizeHistory(raw: unknown): ChatMessage[] {
     cleaned.push({ role, content: trimmed.slice(0, HISTORY_ITEM_MAX_LEN) });
   }
 
-  // The Anthropic API requires a strictly alternating sequence that starts
-  // with "user". Enforce that here: drop leading assistant turns, collapse
-  // consecutive same-role turns (keep the latest), and drop a trailing "user"
-  // turn since the route appends the current user message right after.
   const alternating: ChatMessage[] = [];
   for (const msg of cleaned) {
     if (alternating.length === 0) {
-      if (msg.role !== "user") continue; // must start with user
+      if (msg.role !== "user") continue;
       alternating.push(msg);
     } else if (alternating[alternating.length - 1].role === msg.role) {
-      alternating[alternating.length - 1] = msg; // collapse duplicate role
+      alternating[alternating.length - 1] = msg;
     } else {
       alternating.push(msg);
     }
@@ -156,12 +151,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Quota check BEFORE spending an API call.
   const quota = await getQuota(sessionId);
   if (quota.remaining <= 0) {
     return withSessionCookie(
       NextResponse.json({
-        reply: "",
+        reply: buildLocalHandoffMessage(),
         remainingFreeMessages: 0,
         mode: "local-handoff",
       }),
@@ -170,9 +164,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = getGeminiApiKey();
   if (!apiKey) {
-    console.error("/api/chat: ANTHROPIC_API_KEY is not set");
+    console.error("/api/chat: GEMINI_API_KEY (or NEXT_PUBLIC_GEMINI_API_KEY) is not set");
     return withSessionCookie(
       NextResponse.json(
         {
@@ -197,28 +191,13 @@ export async function POST(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const client = new Anthropic({ apiKey });
-    const completion = await client.messages.create(
-      {
-        model: MODEL_ID,
-        max_tokens: MAX_TOKENS,
-        system: buildHostedSystemPrompt(),
-        messages,
-      },
-      { signal: controller.signal }
+    const reply = await generateGeminiReply(
+      apiKey,
+      buildHostedSystemPrompt(),
+      messages,
+      { maxTokens: MAX_TOKENS, signal: controller.signal }
     );
 
-    const reply = completion.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("")
-      .trim();
-
-    if (!reply) {
-      throw new Error("Empty completion from model");
-    }
-
-    // Only now, on success, spend one question from the quota.
     const updated = await consumeQuota(sessionId);
 
     return withSessionCookie(
@@ -233,15 +212,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const isTimeout =
       controller.signal.aborted ||
-      (error instanceof Error && (error.name === "AbortError" || error.name === "APIUserAbortError"));
+      (error instanceof Error && error.name === "AbortError");
     const status = isTimeout ? 504 : 502;
-    console.error("/api/chat: model call failed", error);
+    console.error("/api/chat: Gemini call failed", error);
 
     return withSessionCookie(
       NextResponse.json(
         {
           reply: "",
-          // Quota NOT consumed on failure — visitor keeps their question.
           remainingFreeMessages: quota.remaining,
           mode: "hosted",
           error: isTimeout

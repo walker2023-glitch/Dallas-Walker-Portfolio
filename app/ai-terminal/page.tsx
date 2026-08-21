@@ -5,7 +5,7 @@ import { AiTerminal } from "@/components/ai/AiTerminal";
 export const metadata: Metadata = {
   title: "AI Terminal",
   description:
-    "Ask an AI assistant about Dallas Walker — hosted Claude Haiku with an in-browser fallback model.",
+    "Ask an AI assistant about Dallas Walker — hosted Gemini 3.5 Flash with an in-browser fallback model.",
 };
 
 /**

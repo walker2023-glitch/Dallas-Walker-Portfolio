@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.120.0",
     "@mlc-ai/web-llm": "^0.2.84",
     "@upstash/redis": "^1.38.2",
     "next": "^16.3.1",

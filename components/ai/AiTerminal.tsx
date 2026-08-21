@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   FREE_QUESTION_LIMIT,
+  HOSTED_MODEL_LABEL,
   FALLBACK_MODEL_LABEL,
   buildFallbackSystemPrompt,
 } from "@/lib/aiContext";
@@ -147,13 +148,16 @@ export function AiTerminal() {
         appendMessage({
           role: "assistant",
           source: "system",
-          content: isFallbackSupported()
-            ? `You've used your ${FREE_QUESTION_LIMIT} free hosted questions. Switching to a private, in-browser model (${FALLBACK_MODEL_LABEL}) — it downloads once on first use, then runs entirely on your device.`
-            : `You've used your ${FREE_QUESTION_LIMIT} free hosted questions, and this browser doesn't support the in-browser fallback (no WebGPU). Please reach out via the Contact page or email ${site.email}.`,
+          content:
+            data.reply ||
+            (isFallbackSupported()
+              ? `You've used your ${FREE_QUESTION_LIMIT} free hosted questions. Your browser will now load a private, on-device model (${FALLBACK_MODEL_LABEL}).`
+              : `You've used your ${FREE_QUESTION_LIMIT} free hosted questions, and this browser doesn't support the in-browser fallback (no WebGPU). Please reach out via the Contact page or email ${site.email}.`),
         });
         setStatus("idle");
-        // Route the just-asked question to the local model.
-        await answerLocally(question, history as ChatTurn[]);
+        if (isFallbackSupported()) {
+          await answerLocally(question, history as ChatTurn[]);
+        }
         return;
       }
 
@@ -204,7 +208,7 @@ export function AiTerminal() {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <span className="font-code-label text-code-label text-primary uppercase">
-            {mode === "hosted" ? "Hosted_Core // Claude Haiku 4.5" : `Local_Core // ${FALLBACK_MODEL_LABEL}`}
+            {mode === "hosted" ? `Hosted_Core // ${HOSTED_MODEL_LABEL}` : `Local_Core // ${FALLBACK_MODEL_LABEL}`}
           </span>
         </div>
         <span className="font-code-label text-[10px] text-outline uppercase">
@@ -218,8 +222,8 @@ export function AiTerminal() {
           <div className="text-on-surface-variant">
             <p className="font-body-sm mb-4">
               Ask about {site.fullName}&apos;s projects, experience, skills, or education. The first{" "}
-              {FREE_QUESTION_LIMIT} questions use the hosted Claude model; after that it hands off to a
-              private in-browser model.
+              {FREE_QUESTION_LIMIT} questions use hosted {HOSTED_MODEL_LABEL}; after that your browser
+              loads a private on-device model.
             </p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (

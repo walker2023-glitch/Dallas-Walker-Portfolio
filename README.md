@@ -17,8 +17,8 @@ project detail modal, null-safe resume/repo states); `/experience`,
 `/achievements`, `/skills`, and `/about` are populated with real content
 sourced from the resume (Appendix A of the plan); `/contact` is a real form
 wired to `POST /api/contact` (Resend + validation + honeypot + rate limit);
-and `/ai-terminal` is a real hybrid AI assistant — hosted Claude Haiku 4.5
-for the first 5 questions (quota enforced server-side), then a lazy-loaded
+and `/ai-terminal` is a real hybrid AI assistant — hosted Gemini 3.5 Flash
+for the first 3 questions (quota enforced server-side), then a lazy-loaded
 in-browser WebLLM fallback.
 
 | Phase | Scope                                                                 | Status  |
@@ -27,7 +27,7 @@ in-browser WebLLM fallback.
 |     2 | `data/projects.ts`, project grid + filters, image reorg, resume wiring | **done** |
 |     3 | Real Experience, Achievements, Skills, About page content              | **done** |
 |     4 | Contact form + `/api/contact` + Resend                                 | **done** |
-|     5 | `/api/chat` (Claude Haiku 4.5) + KV free-quota + WebLLM fallback       | **done** |
+|     5 | `/api/chat` (Gemini 3.5 Flash) + KV free-quota + WebLLM fallback        | **done** |
 
 ## Stack
 
@@ -69,7 +69,7 @@ app/                Next.js App Router routes + layout + globals.css
   page.tsx          / (Home / module directory)
   globals.css       Tailwind v4 @theme tokens ported from the Stitch export
   api/contact/route.ts  POST /api/contact — Resend email delivery (FR-11, §9)
-  api/chat/route.ts     POST /api/chat — Claude Haiku 4.5 + server-side quota (§9, §11)
+  api/chat/route.ts     POST /api/chat — Gemini 3.5 Flash + server-side quota (§9, §11)
   <route>/page.tsx  One real page per top-level nav item
 
 components/
@@ -92,7 +92,8 @@ data/resumes.ts     Resume variant metadata (name + description) for the ResumeM
 lib/nav.ts          Single-source-of-truth nav item list + isActive() helper
 lib/rateLimit.ts    Minimal in-memory rate limiter used by /api/contact + /api/chat
 lib/aiContext.ts    Builds the assistant's system prompt from data/*.ts (shared server + client)
-lib/quota.ts        Server-side free-question quota (Upstash Redis, in-memory fallback)
+lib/geminiChat.ts   Server-side Gemini 3.5 Flash generateContent helper
+lib/quota.ts        Server-side free-question quota (Upstash Redis / Vercel KV, in-memory fallback)
 lib/fallbackModel.ts Lazy WebLLM loader + local inference (dynamic import, client only)
 public/images/      Real project + personal images (migrated from /images/ in Phase 2)
 
@@ -132,9 +133,10 @@ your host's project settings for production.
 
 | Variable                  | Required? | Default if unset                        | Purpose |
 | ------------------------- | :-------: | ---------------------------------------- | ------- |
-| `ANTHROPIC_API_KEY`       | for hosted chat | none — `/api/chat` returns a graceful 503 "assistant isn't configured yet" message | Server-side Claude API key (model `claude-haiku-4-5-20251001`). Create one at [console.anthropic.com](https://console.anthropic.com/). **Server-only — never exposed to the browser.** |
-| `UPSTASH_REDIS_REST_URL`  | recommended | falls back to an in-memory per-instance quota store (fine for dev, not durable across serverless instances) | Upstash Redis REST URL, used to track the 5-free-question quota per visitor server-side (FR-6). |
-| `UPSTASH_REDIS_REST_TOKEN`| recommended | (see above)                              | Upstash Redis REST token. |
+| `GEMINI_API_KEY`          | for hosted chat | none — `/api/chat` returns a graceful 503 | Google AI API key for **Gemini 3.5 Flash** (`gemini-3.5-flash`). Create at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). **Set server-side only** — prefer this name over `NEXT_PUBLIC_*`. |
+| `NEXT_PUBLIC_GEMINI_API_KEY` | alternate | (see above) | Accepted alias read only in `app/api/chat/route.ts`. Avoid if possible — any `NEXT_PUBLIC_` name is inlined at build time. |
+| `UPSTASH_REDIS_REST_URL`  | recommended | in-memory per-instance fallback | Upstash / Vercel KV REST URL — tracks the **3-free-question** quota per session. |
+| `UPSTASH_REDIS_REST_TOKEN`| recommended | (see above)                              | Upstash / Vercel KV REST token. |
 
 > **KV note:** `@vercel/kv` is end-of-life; this project uses its upstream,
 > `@upstash/redis`. `Redis.fromEnv()` also accepts the Vercel-KV-style
@@ -166,8 +168,8 @@ Example `.env.local`:
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
 # CONTACT_FROM_EMAIL="Dallas Walker <contact@yourdomain.com>"
 
-# AI assistant
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxx
+# AI assistant (Gemini 3.5 Flash — server-side only)
+GEMINI_API_KEY=your_google_ai_studio_key_here
 UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
 UPSTASH_REDIS_REST_TOKEN=xxxxxxxxxxxxxxxxxxxx
 
@@ -186,19 +188,19 @@ comments for the tradeoffs of the in-memory approach.
 
 A **hybrid** design (plan §11):
 
-1. **Hosted tier** — the first `FREE_QUESTION_LIMIT` (5) questions per visitor
-   go to Claude Haiku 4.5 via `POST /api/chat`. The Claude call happens
-   **server-side only**; the API key never reaches the browser. The system
+1. **Hosted tier** — the first `FREE_QUESTION_LIMIT` (**3**) questions per visitor
+   go to **Gemini 3.5 Flash** via `POST /api/chat`. The API call happens
+   **server-side only**; the key never reaches the browser. The system
    prompt is assembled at request time from `data/projects.ts`,
    `data/experience.ts`, `data/skills.ts`, and `data/about.ts` by
    `lib/aiContext.ts` — so the assistant's facts always match the rendered
    pages, with nothing hardcoded separately.
 2. **Server-side quota** — a per-visitor session cookie keys a counter in
-   Upstash Redis (or the in-memory fallback), capped at 5 in a rolling 24h
-   window. localStorage is never trusted for enforcement.
+   Upstash Redis / Vercel KV (or the in-memory fallback), capped at **3** in a
+   rolling 24h window. localStorage is never trusted for enforcement.
 3. **Local fallback tier** — once the quota is spent, `/api/chat` responds
-   `mode: "local-handoff"` **without** calling Claude, and the UI lazy-loads a
-   WebLLM model **only at that point** (`import("@mlc-ai/web-llm")` inside an
+   `mode: "local-handoff"` with a handoff message and **does not** call Gemini
+   again. The UI lazy-loads a WebLLM model **only at that point** (`import("@mlc-ai/web-llm")` inside an
    event handler — never in the initial bundle). It then runs entirely
    on-device. The fallback model is **`Phi-3.5-mini-instruct`** (chosen over
    Gemma-2-2b for stronger instruction-following, which matters for the
