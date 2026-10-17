@@ -84,14 +84,24 @@ export function buildKnowledgeBase(): string {
   const projectList = projects
     .map((p) => {
       const repo = p.repoUrl ? p.repoUrl : "repository not yet public";
-      const status = p.status ? `Status: ${p.status}.` : "";
-      const evidence = p.evidence?.length
-        ? ` Evidence: ${p.evidence.map((item) => `${item.label} (${item.kind}): ${item.url}`).join("; ")}.`
-        : "";
-      return `- ${p.title} [${p.language}, ${p.complexity}]. ${status} ${p.longDesc} (${repo})${evidence}`;
+      return `- ${p.title} [${p.language}, ${p.complexity}]: ${p.longDesc} (${repo})`;
     })
     .join("\n");
   sections.push(`# PROJECTS\n${projectList}`);
+
+  const projectStatusAndEvidence = projects
+    .filter((p) => p.status || p.evidence?.length)
+    .map((p) => {
+      const status = p.status ? `Status: ${p.status}.` : "Status not specified.";
+      const evidence = p.evidence?.length
+        ? p.evidence.map((item) => `${item.label} (${item.kind}): ${item.url}`).join("; ")
+        : "No public evidence link listed.";
+      return `- ${p.title}: ${status} Evidence: ${evidence}`;
+    })
+    .join("\n");
+  if (projectStatusAndEvidence) {
+    sections.push(`# PROJECT STATUS AND EVIDENCE\n${projectStatusAndEvidence}`);
+  }
 
   sections.push(
     [
