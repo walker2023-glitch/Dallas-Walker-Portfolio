@@ -37,7 +37,17 @@
 
 export type ProjectComplexity = "Foundational" | "Intermediate" | "Advanced";
 
+export interface ProjectEvidence {
+  label: string;
+  url: string;
+  kind: "repository" | "demo" | "report";
+}
+
 export interface Project {
+  /** Work status is optional so existing project entries remain unchanged. */
+  status?: "in-progress" | "complete";
+  /** Public artifacts that support this project entry; no skill claim is implied. */
+  evidence?: ProjectEvidence[];
   id: string;
   title: string;
   /** Short categorical badge shown on the card (terminal-style, e.g. "FULL_STACK"). */
@@ -58,6 +68,29 @@ export interface Project {
 }
 
 export const projects: Project[] = [
+  {
+    id: "vibecheck",
+    title: "VibeCheck",
+    tag: "AI_DEVELOPER_LEARNING",
+    shortDesc:
+      "A prototype for helping developers understand code they build with AI, grounded in their own codebase.",
+    longDesc:
+      "VibeCheck is an in-progress developer-learning project built around the idea “Build with AI. Understand what you build.” Its public repository contains a Next.js prototype with code-explanation, knowledge-check, planning, and deployment flows. The repository is the current public evidence; no hosted demo is listed.",
+    image: "/images/portfolio-logo.png",
+    icon: "explore",
+    repoUrl: "https://github.com/walker2023-glitch/VibeCheck",
+    language: "TypeScript",
+    complexity: "Advanced",
+    dateCompleted: null,
+    status: "in-progress",
+    evidence: [
+      {
+        label: "Source repository",
+        url: "https://github.com/walker2023-glitch/VibeCheck",
+        kind: "repository",
+      },
+    ],
+  },
   {
     id: "factor",
     title: "FACTOR",
