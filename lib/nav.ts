@@ -29,6 +29,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/ai-terminal", label: "AI_TERMINAL", shortLabel: "AI", icon: "smart_toy" },
   { href: "/contact", label: "CONTACT", shortLabel: "Contact", icon: "alternate_email" },
   { href: "/about", label: "ABOUT", shortLabel: "About", icon: "person" },
+  { href: "/employer", label: "EMPLOYER_VIEW", shortLabel: "Employer", icon: "badge" },
 ] as const;
 
 /**

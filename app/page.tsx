@@ -28,6 +28,7 @@ export default function HomePage() {
     { href: "/about", code: "MOD_05", label: "About", icon: "person", phase: 3 },
     { href: "/contact", code: "MOD_06", label: "Contact", icon: "alternate_email", phase: 4 },
     { href: "/ai-terminal", code: "MOD_07", label: "AI_Terminal", icon: "smart_toy", phase: 5 },
+    { href: "/employer", code: "MOD_08", label: "Employer_View", icon: "badge", phase: 6 },
   ];
 
   return (

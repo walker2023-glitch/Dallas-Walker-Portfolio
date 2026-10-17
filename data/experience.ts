@@ -41,6 +41,21 @@ export interface ExperienceEntry {
 export const experience: ExperienceEntry[] = [
   {
     kind: "employment",
+    role: "Systems Improvement and Training Specialist",
+    organization: "Brigham Young University–Idaho Facilities Management Services",
+    location: "Rexburg, ID",
+    startDate: "May 2026",
+    endDate: null,
+    current: true,
+    bullets: [
+      "Migrated equipment-maintenance reporting from a Python dashboard to Power BI, combining monthly CompuClean service-order data to track repair hours, turnaround, and capacity.",
+    ],
+    tags: ["Power BI", "Python", "Reporting Workflows"],
+    icon: "monitoring",
+  },
+
+  {
+    kind: "employment",
     role: "Online TA Supervisor / Data Analyst",
     organization: "Brigham Young University–Idaho",
     location: "Rexburg, ID",
